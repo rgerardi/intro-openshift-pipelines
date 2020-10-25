@@ -404,4 +404,147 @@ You can see this pipeline by running `oc get pipelines` or through the Web UI:
 
 ![pipeline-webui](/pictures/pipeline-webui.png)
 
+## Running the Pipeline
 
+Before you run the pipeline, you need to define a Persistent Volume object to use as the `workspace`. Define a PVC object like this:
+
+``` yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workspace-pvc
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+```
+
+Then, import the PVC object into OpenShift using `oc`:
+
+```
+$ oc apply -f workspace-pvc.yaml
+persistentvolumeclaim/workspace-pvc created
+```
+
+To run pipelines in OpenShift pipelines you need to instantiate a Pipeline Run object, providing all the required parameters, such as the Git URL, branch, image, and workspace. You can do this via the Web UI, by defining a Pipeline Run object in `yaml`, or by using the `tkn pipeline start`.
+
+### Using the Web UI
+
+To start the Pipeline using the Web UI, select the "Actions -> Start" option in the top right drop down box for the desired pipeline:
+
+![pipeline-start](/pictures/pipeline-start.png)
+
+Then, provide all required options in the dialog box and click "Start":
+
+![pipeline-start-params](/pictures/pipeline-start02.png)
+
+Follow the progress of the pipeline by selecting Pipeline Runs on the left menu bar and clicking on the running pipeline run:
+
+![pipeline-progress](/pictures/pipeline-progress.png)
+
+***Note***: The graphical "workspace" selection option was added in OpenShift 4.5 therefore if running OpenShift 4.4, you need to execute this pipeline using the command line.
+
+### Using the Pipeline Run definition
+
+Create a `yaml` file containing the Pipeline Run definition with all required parameters:
+
+``` yaml
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  labels:
+    tekton.dev/pipeline: hellogo-test-build-deploydev
+  generateName: hellogo-test-build-deploydev-
+spec:
+  params:
+  - name: git-url
+    value: https://github.com/rgerardi/hellogo.git
+  - name: branch-name
+    value: master
+  - name: image
+    value: image-registry.openshift-image-registry.svc:5000/cicd/hellogo:latest
+  pipelineRef:
+    name: hellogo-test-build-deploydev
+  workspaces:
+  - name: shared
+    persistentVolumeClaim:
+      claimName: workspace-pvc
+```
+
+Instantiate this object with `oc create`:
+
+```
+$ oc create -f hellogo-test-build-deploydev-pr.yaml
+pipelinerun.tekton.dev/hellogo-test-build-deploydev-qhk9x created
+```
+
+You can follow the progress through the Web UI, using the `oc get pr`, or `tkn pr list` commands.
+
+### Using tkn command line
+
+```
+$ tkn pipeline start -p git-url=https://github.com/rgerardi/hellogo.git -p image=image-registry.openshift-image-registry.svc:5000/cicd/hellogo:latest -w name=shared,claimName=workspace-pvc  hellogo-test-build-deploydev
+PipelineRun started: hellogo-test-build-deploydev-run-8pgm7
+
+In order to track the PipelineRun progress run:
+tkn pipelinerun logs hellogo-test-build-deploydev-run-8pgm7 -f -n cicd
+```
+
+Follow the progress by executing the command listed in the output of the `tkn pipeline start`:
+
+```
+$ tkn pipelinerun logs hellogo-test-build-deploydev-run-8pgm7 -f -n cicd
+[fetch-repository : clone] + CHECKOUT_DIR=/workspace/output/
+[fetch-repository : clone] + '[[' true '==' true ]]
+[fetch-repository : clone] + cleandir
+[fetch-repository : clone] + '[[' -d /workspace/output/ ]]
+[fetch-repository : clone] + rm -rf '/workspace/output//*'
+[fetch-repository : clone] + rm -rf '/workspace/output//.[!.]*'
+.... TRUNCATED ....
+```
+
+## Verifying the results
+
+Verify the pipeline status using the Web UI, `oc`, or `tkn` commands. For example, using `tkn`:
+
+```
+$ tkn pr list
+NAME                                 STARTED         DURATION    STATUS
+hellogo-test-build-deploydev-qhk9x   4 minutes ago   4 minutes   Succeeded
+```
+
+When the pipeline completes, verify the results by listing the Pod and Route objects in the `hellogo-dev` and `hellogo-qa` projects:
+
+```
+$ oc get pods -n hellogo-dev
+NAME                      READY   STATUS    RESTARTS   AGE
+hellogo-b7576489c-5htbs   1/1     Running   0          2m40s
+hellogo-b7576489c-77whz   1/1     Running   0          2m40s
+
+oc get routes -n hellogo-dev
+NAME      HOST/PORT                              PATH   SERVICES   PORT   TERMINATION     WILDCARD
+hellogo   hellogo-hellogo-dev.apps-crc.testing          hellogo    3000   edge/Redirect   None
+```
+
+Then test the application using `curl`:
+
+```
+$ curl -k https://$(oc get route hellogo -n hellogo-dev --template='{{.spec.host}}')
+This request is being served by sever hellogo-b7576489c-5htbs
+```
+
+Do the same for QA:
+
+```
+$ curl -k https://$(oc get route hellogo -n hellogo-qa --template='{{.spec.host}}') 
+This request is being served by sever hellogo-b7576489c-g27cs
+```
+
+## What's Next
+
+This lab provided an introduction to the basic components of OpenShift Pipelines. You learned how to install OpenShift Pipelines, create Tasks, build Pipelines, and execute them manually.
+
+OpenShift Pipelines can also execute pipelines automatically via triggers, for example, to trigger a build when a developer pushes code to the Git repository. For more details, take a look at the [Triggers documentation](https://docs.openshift.com/container-platform/4.5/pipelines/understanding-openshift-pipelines.html#about-triggers_understanding-openshift-pipelines).
