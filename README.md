@@ -21,7 +21,6 @@ To build this pipeline, you'll use OpenShift Pipelines objects such as Steps, Ta
 * Text editor
 * `git` and access to Github
 
-
 This lab was tested with CRC 1.17 with OpenShift 4.5.14 and RHPDS running OpenShift 4.4.
 
 ## Preparation
@@ -41,7 +40,6 @@ $ oc new-project hellogo-qa --display-name="Hellogo App QA" --description="CI/CD
 ```
 
 ***Note***: If you're using a shared cluster, such as RHPDS shared environment, prefix the project names with your initials or a random string to prevent conflicts, for example `rgerardi-cicd` instead of `cicd`. Adjust the commands accordingly.
-
 
 Next, switch to the `cicd` project:
 
@@ -65,6 +63,16 @@ $ oc policy add-role-to-group system:image-puller system:serviceaccounts:hellogo
 ```
 
 If you want to make modifications to the `hellogo` application source code for testing, then fork the project into your own Github account. If you just want to build it as is, you can use the original repo directly.
+
+***Note***: If using a shared environment and you updated the project names with a prefix, then clone the `hellogo` repository, update the Deployments definitions in the `k8s-manifests` directory to point the image to the correct project, and push your code to the forked repo. Use your repo when executing the pipeline.
+
+For example, if you updated the `cicd` project name with your username like `rgerardi-cicd`, update the image defintion in `k8s-manifests/deployment.yaml` to:
+
+```
+spec:
+  containers:
+  - image: image-registry.openshift-image-registry.svc:5000/rgerardi-cicd/hellogo:latest
+```
 
 Finally, clone this repository [intro-openshift-pipelines](https://github.com/rgerardi/intro-openshift-pipelines) in your local machine to access the tasks and pipeline `yaml` definitions.
 
