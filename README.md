@@ -393,6 +393,8 @@ We're also using the `workspaces` specification to define the name of the worksp
 
 Finally, define the relationship between tasks by using the spec `runAfter` providing a list of tasks that need to execute before  each task. The initial task in the pipeline does not have this specification.
 
+***Note***: If you're using a shared environment and changed the projects names by adding a prefix, update the Pipeline defintion to ensure the references to the projects in the `deploy-dev` and `deploy-qa` tasks, as well as, the image name matches the project names you defined.
+
 Now, import the pipeline into your project using the `oc` command line:
 
 ```
@@ -421,6 +423,8 @@ spec:
   accessModes:
     - ReadWriteMany
 ```
+
+***Note***: If your cluster has multiple storage classes, ensure you're using the appropriate one.
 
 Then, import the PVC object into OpenShift using `oc`:
 
