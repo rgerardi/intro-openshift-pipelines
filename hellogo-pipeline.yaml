@@ -1,0 +1,97 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: hellogo-test-build-deploydev
+spec:
+  params:
+  - name: git-url
+    type: string
+    description: The git repository URL to clone from.
+  - name: branch-name
+    type: string
+    description: The git branch to clone.
+    default: master
+  - name: image
+    type: string
+    default: 'image-registry.openshift-image-registry.svc:5000/cicd/hellogo:latest'
+  workspaces:
+  - name: shared
+  tasks:
+  - name: fetch-repository
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    workspaces:
+    - name: output
+      workspace: shared
+    params:
+    - name: url
+      value: $(params.git-url)
+    - name: revision
+      value: $(params.branch-name)
+    - name: deleteExisting
+      value: "true"
+  - name: go-unit-tests
+    retries: 3
+    taskRef:
+      kind: Task
+      name: go-unit-tests
+    workspaces:
+    - name: source
+      workspace: shared
+    runAfter:
+    - fetch-repository
+  - name: go-static-check
+    taskRef:
+      kind: Task
+      name: go-static-check
+    workspaces:
+    - name: source
+      workspace: shared
+    runAfter:
+    - fetch-repository
+  - name: build
+    params:
+    - name: PATH_CONTEXT
+      value: .
+    - name: TLSVERIFY
+      value: "false"
+    - name: IMAGE
+      value: $(params.image)
+    workspaces:
+    - name: source
+      workspace: shared
+    runAfter:
+    - go-unit-tests
+    - go-static-check
+    taskRef:
+      kind: Task
+      name: s2i-go
+  - name: deploy-dev
+    params:
+    - name: manifest_dir
+      value: k8s-manifests
+    - name: namespace
+      value: hellogo-dev
+    workspaces:
+    - name: source
+      workspace: shared
+    runAfter:
+    - build
+    taskRef:
+      kind: Task
+      name: apply-manifests
+  - name: deploy-qa
+    params:
+    - name: manifest_dir
+      value: k8s-manifests
+    - name: namespace
+      value: hellogo-qa
+    workspaces:
+    - name: source
+      workspace: shared
+    runAfter:
+    - deploy-dev
+    taskRef:
+      kind: Task
+      name: apply-manifests

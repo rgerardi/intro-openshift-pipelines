@@ -1,0 +1,20 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  labels:
+    tekton.dev/pipeline: hellogo-test-build-deploydev
+  generateName: hellogo-test-build-deploydev-
+spec:
+  params:
+  - name: git-url
+    value: https://github.com/rgerardi/hellogo.git
+  - name: branch-name
+    value: master
+  - name: image
+    value: image-registry.openshift-image-registry.svc:5000/cicd/hellogo:latest
+  pipelineRef:
+    name: hellogo-test-build-deploydev
+  workspaces:
+  - name: shared
+    persistentVolumeClaim:
+      claimName: workspace-pvc
