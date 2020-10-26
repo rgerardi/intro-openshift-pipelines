@@ -21,7 +21,7 @@ To build this pipeline, you'll use OpenShift Pipelines objects such as Steps, Ta
 * Text editor
 * `git` and access to Github
 
-For more information about the `tkn` CLI tool, check their [official repository](https://github.com/tektoncd/cli).
+For more information about the `tkn` CLI tool, check their [official repository](https://github.com/tektoncd/cli). You can download it from the [OpenShift mirror](https://mirror.openshift.com/pub/openshift-v4/clients/pipeline/).
 
 This lab was tested with CRC 1.17 with OpenShift 4.5.14 and RHPDS running OpenShift 4.4.
 
@@ -56,6 +56,8 @@ By default, pipelines and tasks in OpenShift Pipelines run using the `pipeline` 
 $ oc adm policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n hellogo-qa
 $ oc adm policy add-role-to-user edit system:serviceaccount:cicd:pipeline -n hellogo-dev
 ```
+
+***Note***: You may get a message saying that the service account does not exist. You can safely ignore this message. The permission will be applied when the service account is created later.
 
 Finally, allow the other projects to pull images from the `cicd` project by providing the role `system:image-puller` to the service account group in the destination projects:
 
@@ -110,9 +112,10 @@ OpenShift Pipelines is installed.
 
 ### Using the Command Line
 
-If you prefer, you can install OpenShift Pipelines operator using the `oc` command line. First, log in to your cluster using `oc` as admin. Then, create the subscription definition as `yaml` file:
+If you prefer, you can install OpenShift Pipelines operator using the `oc` command line. First, log in to your cluster using `oc` as admin. Then, run this command:
 
 ``` yaml
+$ cat <<EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -125,9 +128,10 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   startingCSV: openshift-pipelines-operator.v1.0.1
+EOF
 ```
 
-Finally, apply it to the cluster using `oc create`:
+You can also use the defintion file `sub-4.5.yaml` from this repository using `oc create`:
 
 ```
 $ oc create -f sub-4.5.yaml
@@ -274,6 +278,13 @@ $ curl -sO https://raw.githubusercontent.com/openshift/pipelines-catalog/master/
 ```
 
 Then, import it to the project using `oc`:
+
+```
+$ oc apply -f s2i-go.yaml
+task.tekton.dev/s2i-go created
+```
+
+If you cannot download the file, you can import it the one provided with this repository using `oc`:
 
 ```
 $ oc apply -f catalog-tasks/s2i-go.yaml
