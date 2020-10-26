@@ -21,6 +21,8 @@ To build this pipeline, you'll use OpenShift Pipelines objects such as Steps, Ta
 * Text editor
 * `git` and access to Github
 
+For more information about the `tkn` CLI tool, check their [official repository](https://github.com/tektoncd/cli).
+
 This lab was tested with CRC 1.17 with OpenShift 4.5.14 and RHPDS running OpenShift 4.4.
 
 ## Preparation
