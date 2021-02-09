@@ -274,7 +274,7 @@ OpenShift and Tekton provide some ready to use tasks in a free open source catal
 For this lab, we'll use the task `s2i-go` from the OpenShift catalogue to build the container image for the `hellogo` application using S2i. First, download it using `curl`:
 
 ```
-$ curl -sO https://raw.githubusercontent.com/openshift/pipelines-catalog/master/task/s2i-go/0.1/s2i-go.yaml
+$ curl -sO https://raw.githubusercontent.com/openshift/pipelines-catalog/v0.14.3/task/s2i-go/0.1/s2i-go.yaml
 ```
 
 Then, import it to the project using `oc`:
